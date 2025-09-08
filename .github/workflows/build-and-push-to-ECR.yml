@@ -18,34 +18,27 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION_NAME }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set image tag
-        id: vars
+      - name: Set image tag based on push time
         run: |
-          # Get commit message
-          MSG="${{ github.event.head_commit.message }}"
+          # Get timestamp of commit push
+          TS="${{ github.event.head_commit.timestamp }}"
 
-          # Sanitize: lowercase, replace spaces with '-', remove invalid chars
-          TAG=$(echo "$MSG" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9._-')
-
-          # If empty, generate random tag  
-          if [ -z "$TAG" ]; then
-            TAG="build-$(date +%s)"
-          fi
+          # Format it: YYYYMMDD-HHMMSS (Docker tag safe)
+          TAG=$(date -d "$TS" +"%Y%m%d-%H%M%S")
 
           echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
 
       - name: Build, Tag, and Push image
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY }}
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
           echo "Using image tag: $IMAGE_TAG"
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REPOSITORY:$IMAGE_TAG
