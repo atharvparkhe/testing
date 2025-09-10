@@ -1,13 +1,13 @@
 from decouple import config
 from pathlib import Path
-# import os
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY")
 
-# DEBUG = True
-DEBUG = False
+DEBUG = True
+# DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
 
@@ -40,8 +40,8 @@ TEMPLATES_DIRS = []
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': TEMPLATES_DIRS,
+        'DIRS': TEMPLATES_DIRS,
+        'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
@@ -63,7 +63,7 @@ DATABASES = {
 }
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.contrib.gis.db.backends.postgis',
+#         'ENGINE': 'django.db.backends.postgresql',
 #         'NAME': config("DB_NAME"),
 #         'USER': config("DB_USER"),
 #         'PASSWORD': config("DB_PASSWORD"),
@@ -95,6 +95,8 @@ USE_I18N = False
 USE_L10N = False
 USE_TZ = False
 
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 
 # STATIC_URL = 'static/'
 # STATIC_ROOT = os.path.join("static")
@@ -102,22 +104,31 @@ USE_TZ = False
 # MEDIA_URL = '/data/'
 # MEDIA_ROOT = os.path.join("data")
 
-# # AWS Config
+import os
+from decouple import config  # if using python-decouple
+
 AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME")
-AWS_S3_REGION_NAME = "ap-south-1"
+AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default=None)
 AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
-# AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
-AWS_DEFAULT_ACL = None
 
-STATIC_LOCATION = 'static'
-STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{STATIC_LOCATION}/"
-STATICFILES_STORAGE = 'core.storages.StaticStore'
+# Static & Media URLs
+STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
+MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
 
-PUBLIC_MEDIA_LOCATION = 'media'
-MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{PUBLIC_MEDIA_LOCATION}/'
-DEFAULT_FILE_STORAGE = 'core.storages.MediaStore'
-
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# New Django 4.2+ storage system
+STORAGES = {
+    "default": {  # Media files
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "location": "media",
+        },
+    },
+    "staticfiles": {  # Static files
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "location": "static",
+        },
+    },
+}

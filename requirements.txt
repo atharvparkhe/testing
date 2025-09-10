@@ -1,4 +1,7 @@
 boto3
 Django
+django-storages
 djangorestframework
+pillow
+psycopg2-binary
 python-decouple
